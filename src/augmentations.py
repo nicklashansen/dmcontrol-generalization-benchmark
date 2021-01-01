@@ -46,7 +46,7 @@ def _get_places_batch(batch_size):
 
 
 def random_overlay(x, dataset='places365_standard'):
-	"""Randomly overlay an image from ImageNet"""
+	"""Randomly overlay an image from Places"""
 	global places_iter
 	alpha = 0.5
 
@@ -61,6 +61,7 @@ def random_overlay(x, dataset='places365_standard'):
 
 
 def batch_from_obs(obs, batch_size=32):
+	"""Copy a single observation along the batch dimension"""
 	if isinstance(obs, torch.Tensor):
 		if len(obs.shape)==3:
 			obs = obs.unsqueeze(0)
@@ -72,6 +73,7 @@ def batch_from_obs(obs, batch_size=32):
 
 
 def prepare_pad_batch(obs, next_obs, action, batch_size=32):
+	"""Prepare batch for self-supervised policy adaptation at test-time"""
 	batch_obs = batch_from_obs(torch.from_numpy(obs).cuda(), batch_size)
 	batch_next_obs = batch_from_obs(torch.from_numpy(next_obs).cuda(), batch_size)
 	batch_action = torch.from_numpy(action).cuda().unsqueeze(0).repeat(batch_size, 1)
