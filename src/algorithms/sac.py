@@ -77,7 +77,7 @@ class SAC(object):
 			mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
 			return pi.cpu().data.numpy().flatten()
 
-	def update_critic(self, obs, action, reward, next_obs, not_done, L, step):
+	def update_critic(self, obs, action, reward, next_obs, not_done, L=None, step=None):
 		with torch.no_grad():
 			_, policy_action, log_pi, _ = self.actor(next_obs)
 			target_Q1, target_Q2 = self.critic_target(next_obs, policy_action)
@@ -88,7 +88,8 @@ class SAC(object):
 		current_Q1, current_Q2 = self.critic(obs, action)
 		critic_loss = F.mse_loss(current_Q1,
 								 target_Q) + F.mse_loss(current_Q2, target_Q)
-		L.log('train_critic/loss', critic_loss, step)
+		if L is not None:
+			L.log('train_critic/loss', critic_loss, step)
 
 		self.critic_optimizer.zero_grad()
 		critic_loss.backward()

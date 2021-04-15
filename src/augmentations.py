@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torchvision.transforms as TF
 import torchvision.datasets as datasets
+from skimage.util.shape import view_as_windows
 import os
 
 
