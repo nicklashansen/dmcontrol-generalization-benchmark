@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 import dmc2gym
+import utils
 from collections import deque
 
 
@@ -17,12 +18,21 @@ def make_env(
 		frame_stack=3,
 		action_repeat=4,
 		image_size=100,
-		mode='train'
+		mode='train',
+		intensity=0.
 	):
 	"""Make environment for experiments"""
-	assert mode in {'train', 'color_easy', 'color_hard', 'video_easy', 'video_hard'}, \
+	assert mode in {'train', 'color_easy', 'color_hard', 'video_easy', 'video_hard', 'distracting_cs'}, \
 		f'specified mode "{mode}" is not supported'
 
+	paths = []
+	is_distracting_cs = mode == 'distracting_cs'
+	if is_distracting_cs:
+		import env.distracting_control.suite as dc_suite
+		loaded_paths = [os.path.join(dir_path, 'DAVIS/JPEGImages/480p') for dir_path in utils.load_config('datasets')]
+		for path in loaded_paths:
+			if os.path.exists(path):
+				paths.append(path)
 	env = dmc2gym.make(
 		domain_name=domain_name,
 		task_name=task_name,
@@ -32,11 +42,16 @@ def make_env(
 		height=image_size,
 		width=image_size,
 		episode_length=episode_length,
-		frame_skip=action_repeat
+		frame_skip=action_repeat,
+		is_distracting_cs=is_distracting_cs,
+		distracting_cs_intensity=intensity,
+		background_dataset_paths=paths
 	)
-	env = VideoWrapper(env, mode, seed)
+	if not is_distracting_cs:
+		env = VideoWrapper(env, mode, seed)
 	env = FrameStack(env, frame_stack)
-	env = ColorWrapper(env, mode, seed)
+	if not is_distracting_cs:
+		env = ColorWrapper(env, mode, seed)
 
 	return env
 
@@ -165,7 +180,7 @@ class FrameStack(gym.Wrapper):
 
 	def _get_obs(self):
 		assert len(self._frames) == self._k
-		return np.concatenate(list(self._frames), axis=0)
+		return utils.LazyFrames(list(self._frames))
 
 
 def rgb_to_hsv(r, g, b):

@@ -13,12 +13,18 @@ def make(
         camera_id=0,
         frame_skip=1,
         episode_length=1000,
+        is_distracting_cs=None,
+        distracting_cs_intensity=None,
+        background_dataset_paths=None,
         environment_kwargs=None,
         setting_kwargs=None,
         time_limit=None,
         channels_first=True
 ):
-    env_id = 'dmc_%s_%s-v1' % (domain_name, task_name)
+    if is_distracting_cs:
+        env_id = 'dmc_%s_%s-%s-v1' % (domain_name, task_name, 'dcs')
+    else:
+        env_id = 'dmc_%s_%s-v1' % (domain_name, task_name)
 
     if from_pixels:
         assert not visualize_reward, 'cannot use visualize reward when learning from pixels'
@@ -48,6 +54,9 @@ def make(
                 width=width,
                 camera_id=camera_id,
                 frame_skip=frame_skip,
+                is_distracting_cs=is_distracting_cs,
+                distracting_cs_intensity=distracting_cs_intensity,
+                background_dataset_paths=background_dataset_paths,
                 channels_first=channels_first,
             ),
             max_episode_steps=max_episode_steps,

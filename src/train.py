@@ -40,14 +40,13 @@ def main(args):
 
 	# Initialize environments
 	gym.logger.set_level(40)
-	image_size = 84 if args.algorithm == 'sac' else 100
 	env = make_env(
 		domain_name=args.domain_name,
 		task_name=args.task_name,
 		seed=args.seed,
 		episode_length=args.episode_length,
 		action_repeat=args.action_repeat,
-		image_size=image_size,
+		image_size=args.image_size,
 		mode='train'
 	)
 	test_env = make_env(
@@ -56,9 +55,10 @@ def main(args):
 		seed=args.seed+42,
 		episode_length=args.episode_length,
 		action_repeat=args.action_repeat,
-		image_size=image_size,
-		mode=args.eval_mode
-	)
+		image_size=args.image_size,
+		mode=args.eval_mode,
+		intensity=args.distracting_cs_intensity
+	) if args.eval_mode is not None else None
 
 	# Create working directory
 	work_dir = os.path.join(args.log_dir, args.domain_name+'_'+args.task_name, args.algorithm, str(args.seed))
@@ -78,7 +78,9 @@ def main(args):
 		capacity=args.train_steps,
 		batch_size=args.batch_size
 	)
-	cropped_obs_shape = (3*args.frame_stack, 84, 84)
+	cropped_obs_shape = (3*args.frame_stack, args.image_crop_size, args.image_crop_size)
+	print('Observations:', env.observation_space.shape)
+	print('Cropped observations:', cropped_obs_shape)
 	agent = make_agent(
 		obs_shape=cropped_obs_shape,
 		action_shape=env.action_space.shape,
@@ -100,7 +102,8 @@ def main(args):
 				print('Evaluating:', work_dir)
 				L.log('eval/episode', episode, step)
 				evaluate(env, agent, video, args.eval_episodes, L, step)
-				evaluate(test_env, agent, video, args.eval_episodes, L, step, test_env=True)
+				if test_env is not None:
+					evaluate(test_env, agent, video, args.eval_episodes, L, step, test_env=True)
 				L.dump(step)
 
 			# Save agent periodically

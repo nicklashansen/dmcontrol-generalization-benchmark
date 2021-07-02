@@ -55,10 +55,15 @@ def parse_args():
 	parser.add_argument('--soda_batch_size', default=256, type=int)
 	parser.add_argument('--soda_tau', default=0.005, type=float)
 
+	# svea
+	parser.add_argument('--svea_alpha', default=0.5, type=float)
+	parser.add_argument('--svea_beta', default=0.5, type=float)
+
 	# eval
 	parser.add_argument('--save_freq', default='100k', type=str)
 	parser.add_argument('--eval_freq', default='10k', type=str)
 	parser.add_argument('--eval_episodes', default=30, type=int)
+	parser.add_argument('--distracting_cs_intensity', default=0., type=float)
 
 	# misc
 	parser.add_argument('--seed', default=None, type=int)
@@ -67,14 +72,27 @@ def parse_args():
 
 	args = parser.parse_args()
 
-	assert args.algorithm in {'sac', 'rad', 'curl', 'pad', 'soda'}, f'specified algorithm "{args.algorithm}" is not supported'
+	assert args.algorithm in {'sac', 'rad', 'curl', 'pad', 'soda', 'drq', 'svea'}, f'specified algorithm "{args.algorithm}" is not supported'
 
-	assert args.eval_mode in {'train', 'color_easy', 'color_hard', 'video_easy', 'video_hard'}, f'specified mode "{args.eval_mode}" is not supported'
+	assert args.eval_mode in {'train', 'color_easy', 'color_hard', 'video_easy', 'video_hard', 'distracting_cs', 'none'}, f'specified mode "{args.eval_mode}" is not supported'
 	assert args.seed is not None, 'must provide seed for experiment'
 	assert args.log_dir is not None, 'must provide a log directory for experiment'
+
+	intensities = {0., 0.025, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5}
+	assert args.distracting_cs_intensity in intensities, f'distracting_cs has only been implemented for intensities: {intensities}'
 
 	args.train_steps = int(args.train_steps.replace('k', '000'))
 	args.save_freq = int(args.save_freq.replace('k', '000'))
 	args.eval_freq = int(args.eval_freq.replace('k', '000'))
+
+	if args.eval_mode == 'none':
+		args.eval_mode = None
+
+	if args.algorithm in {'rad', 'curl', 'pad', 'soda'}:
+		args.image_size = 100
+		args.image_crop_size = 84
+	else:
+		args.image_size = 84
+		args.image_crop_size = 84
 	
 	return args

@@ -46,6 +46,9 @@ class DMCWrapper(core.Env):
         width=84,
         camera_id=0,
         frame_skip=1,
+        is_distracting_cs=None,
+        distracting_cs_intensity=None,
+        background_dataset_paths=None,
         environment_kwargs=None,
         setting_kwargs=None,
         channels_first=True
@@ -58,17 +61,34 @@ class DMCWrapper(core.Env):
         self._width = width
         self._camera_id = camera_id
         self._frame_skip = frame_skip
+        self._is_distracting_cs = is_distracting_cs
+        self._distracting_cs_intensity = distracting_cs_intensity
+        self._background_dataset_paths = background_dataset_paths
         self._channels_first = channels_first
 
         # create task
-        self._env = suite.load(
-            domain_name=domain_name,
-            task_name=task_name,
-            task_kwargs=task_kwargs,
-            visualize_reward=visualize_reward,
-            environment_kwargs=environment_kwargs,
-            setting_kwargs=setting_kwargs
-        )
+        if is_distracting_cs:
+            from env.distracting_control import suite as dc_suite
+            self._env = dc_suite.load(
+                domain_name,
+                task_name,
+                task_kwargs=task_kwargs,
+                visualize_reward=visualize_reward,
+                environment_kwargs=environment_kwargs,
+                difficulty=distracting_cs_intensity,
+                dynamic=True,
+                background_dataset_paths=background_dataset_paths
+            )
+        else:
+            from dm_control import suite as dm_suite
+            self._env = dm_suite.load(
+                domain_name=domain_name,
+                task_name=task_name,
+                task_kwargs=task_kwargs,
+                visualize_reward=visualize_reward,
+                environment_kwargs=environment_kwargs,
+                setting_kwargs=setting_kwargs
+            )
 
         # true and normalized action spaces
         self._true_action_space = _spec_to_box([self._env.action_spec()])
@@ -89,10 +109,6 @@ class DMCWrapper(core.Env):
             self._observation_space = _spec_to_box(
                 self._env.observation_spec().values()
             )
-            
-        self._state_space = _spec_to_box(
-                self._env.observation_spec().values()
-        )
         
         self.current_state = None
 

@@ -14,18 +14,18 @@ class SAC(object):
 		self.encoder_tau = args.encoder_tau
 		self.actor_update_freq = args.actor_update_freq
 		self.critic_target_update_freq = args.critic_target_update_freq
-		
+
 		shared_cnn = m.SharedCNN(obs_shape, args.num_shared_layers, args.num_filters).cuda()
-		rl_cnn = m.HeadCNN(shared_cnn.out_shape, args.num_head_layers, args.num_filters).cuda()
+		head_cnn = m.HeadCNN(shared_cnn.out_shape, args.num_head_layers, args.num_filters).cuda()
 		actor_encoder = m.Encoder(
 			shared_cnn,
-			rl_cnn,
-			m.RLProjection(rl_cnn.out_shape, args.projection_dim)
+			head_cnn,
+			m.RLProjection(head_cnn.out_shape, args.projection_dim)
 		)
 		critic_encoder = m.Encoder(
 			shared_cnn,
-			rl_cnn,
-			m.RLProjection(rl_cnn.out_shape, args.projection_dim)
+			head_cnn,
+			m.RLProjection(head_cnn.out_shape, args.projection_dim)
 		)
 
 		self.actor = m.Actor(actor_encoder, action_shape, args.hidden_dim, args.actor_log_std_min, args.actor_log_std_max).cuda()
@@ -61,21 +61,26 @@ class SAC(object):
 	def alpha(self):
 		return self.log_alpha.exp()
 		
+	def _obs_to_input(self, obs):
+		if isinstance(obs, utils.LazyFrames):
+			_obs = np.array(obs)
+		else:
+			_obs = obs
+		_obs = torch.FloatTensor(_obs).cuda()
+		_obs = _obs.unsqueeze(0)
+		return _obs
+
 	def select_action(self, obs):
+		_obs = self._obs_to_input(obs)
 		with torch.no_grad():
-			obs = torch.FloatTensor(obs).cuda()
-			obs = obs.unsqueeze(0)
-			mu, _, _, _ = self.actor(
-				obs, compute_pi=False, compute_log_pi=False
-			)
-			return mu.cpu().data.numpy().flatten()
+			mu, _, _, _ = self.actor(_obs, compute_pi=False, compute_log_pi=False)
+		return mu.cpu().data.numpy().flatten()
 
 	def sample_action(self, obs):
+		_obs = self._obs_to_input(obs)
 		with torch.no_grad():
-			obs = torch.FloatTensor(obs).cuda()
-			obs = obs.unsqueeze(0)
-			mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
-			return pi.cpu().data.numpy().flatten()
+			mu, pi, _, _ = self.actor(_obs, compute_log_pi=False)
+		return pi.cpu().data.numpy().flatten()
 
 	def update_critic(self, obs, action, reward, next_obs, not_done, L=None, step=None):
 		with torch.no_grad():

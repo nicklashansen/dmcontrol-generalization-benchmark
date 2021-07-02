@@ -53,7 +53,9 @@ def main(args):
 		seed=args.seed+42,
 		episode_length=args.episode_length,
 		action_repeat=args.action_repeat,
-		mode=args.eval_mode
+		image_size=args.image_size,
+		mode=args.eval_mode,
+		intensity=args.distracting_cs_intensity
 	)
 
 	# Set working directory
@@ -65,12 +67,17 @@ def main(args):
 	video = VideoRecorder(video_dir if args.save_video else None, height=448, width=448)
 
 	# Check if evaluation has already been run
-	results_fp = os.path.join(work_dir, args.eval_mode+'.pt')
+	if args.eval_mode == 'distracting_cs':
+		results_fp = os.path.join(work_dir, args.eval_mode+'_'+str(args.distracting_cs_intensity).replace('.', '_')+'.pt')
+	else:
+		results_fp = os.path.join(work_dir, args.eval_mode+'.pt')
 	assert not os.path.exists(results_fp), f'{args.eval_mode} results already exist for {work_dir}'
 
 	# Prepare agent
 	assert torch.cuda.is_available(), 'must have cuda enabled'
-	cropped_obs_shape = (3*args.frame_stack, 84, 84)
+	cropped_obs_shape = (3*args.frame_stack, args.image_crop_size, args.image_crop_size)
+	print('Observations:', env.observation_space.shape)
+	print('Cropped observations:', cropped_obs_shape)
 	agent = make_agent(
 		obs_shape=cropped_obs_shape,
 		action_shape=env.action_space.shape,

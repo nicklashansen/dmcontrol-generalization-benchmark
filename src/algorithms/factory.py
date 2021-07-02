@@ -3,13 +3,17 @@ from algorithms.rad import RAD
 from algorithms.curl import CURL
 from algorithms.pad import PAD
 from algorithms.soda import SODA
+from algorithms.drq import DrQ
+from algorithms.svea import SVEA
 
 algorithm = {
 	'sac': SAC,
 	'rad': RAD,
 	'curl': CURL,
 	'pad': PAD,
-	'soda': SODA
+	'soda': SODA,
+	'drq': DrQ,
+	'svea': SVEA
 }
 
 

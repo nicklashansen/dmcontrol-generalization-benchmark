@@ -23,7 +23,7 @@ class VideoRecorder(object):
                 width=self.width,
                 camera_id=self.camera_id
             )
-            if 'video' in mode:
+            if mode is not None and 'video' in mode:
                 _env = env
                 while 'video' not in _env.__class__.__name__.lower():
                     _env = _env.env

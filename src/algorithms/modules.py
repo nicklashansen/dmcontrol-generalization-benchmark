@@ -2,6 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
+from functools import partial
+
+
+def _get_out_shape_cuda(in_shape, layers):
+	x = torch.randn(*in_shape).cuda().unsqueeze(0)
+	return layers(x).squeeze(0).shape
+
 
 def _get_out_shape(in_shape, layers):
 	x = torch.randn(*in_shape).unsqueeze(0)
@@ -9,15 +17,13 @@ def _get_out_shape(in_shape, layers):
 
 
 def gaussian_logprob(noise, log_std):
-	"""Compute Gaussian log probability."""
+	"""Compute Gaussian log probability"""
 	residual = (-0.5 * noise.pow(2) - log_std).sum(-1, keepdim=True)
 	return residual - 0.5 * np.log(2 * np.pi) * noise.size(-1)
 
 
 def squash(mu, pi, log_pi):
-	"""Apply squashing function.
-	See appendix C from https://arxiv.org/pdf/1812.05905.pdf.
-	"""
+	"""Apply squashing function, see appendix C from https://arxiv.org/pdf/1812.05905.pdf"""
 	mu = torch.tanh(mu)
 	if pi is not None:
 		pi = torch.tanh(pi)
@@ -26,8 +32,23 @@ def squash(mu, pi, log_pi):
 	return mu, pi, log_pi
 
 
+def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
+    """Truncated normal distribution, see https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf"""
+    def norm_cdf(x):
+        return (1. + math.erf(x / math.sqrt(2.))) / 2.
+    with torch.no_grad():
+        l = norm_cdf((a - mean) / std)
+        u = norm_cdf((b - mean) / std)
+        tensor.uniform_(2 * l - 1, 2 * u - 1)
+        tensor.erfinv_()
+        tensor.mul_(std * math.sqrt(2.))
+        tensor.add_(mean)
+        tensor.clamp_(min=a, max=b)
+        return tensor
+
+
 def weight_init(m):
-	"""Custom weight init for Conv2D and Linear layers."""
+	"""Custom weight init for Conv2D and Linear layers"""
 	if isinstance(m, nn.Linear):
 		nn.init.orthogonal_(m.weight.data)
 		if hasattr(m.bias, 'data'):
@@ -46,17 +67,17 @@ def weight_init(m):
 class CenterCrop(nn.Module):
 	def __init__(self, size):
 		super().__init__()
-		assert size == 84
+		assert size in {84, 100}, f'unexpected size: {size}'
 		self.size = size
 
 	def forward(self, x):
 		assert x.ndim == 4, 'input must be a 4D tensor'
 		if x.size(2) == self.size and x.size(3) == self.size:
 			return x
-		elif x.size(-1) == 100:
-			return x[:, :, 8:-8, 8:-8]
-		else:
-			return ValueError('unexepcted input size')
+		assert x.size(3) == 100, f'unexpected size: {x.size(3)}'
+		if self.size == 84:
+			p = 8
+		return x[:, :, p:-p, p:-p]
 
 
 class NormalizeImg(nn.Module):
@@ -148,7 +169,6 @@ class Encoder(nn.Module):
 		self.head_cnn = head_cnn
 		self.projection = projection
 		self.out_dim = projection.out_dim
-		self.apply(weight_init)
 
 	def forward(self, x, detach=False):
 		x = self.shared_cnn(x)
@@ -222,7 +242,6 @@ class Critic(nn.Module):
 		self.Q2 = QFunction(
 			self.encoder.out_dim, action_shape[0], hidden_dim
 		)
-		self.apply(weight_init)
 
 	def forward(self, x, action, detach=False):
 		x = self.encoder(x, detach)
