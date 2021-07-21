@@ -43,7 +43,7 @@ Both benchmarks are offered in *easy* and *hard* variants. Samples are shown bel
 **video_hard**<br/>
 ![video_hard](figures/video_hard.png)
 
-This codebase also integrates a set of challenging test environments from the [Distracting Control Suite](https://arxiv.org/abs/2101.02722) (DistractingCS). Our implementation of DistractingCS includes environments of 8 gradually increasing randomization intensities. By default, algorithms are trained for 500k frames and are continuously evaluated in both training and test environments. Environment randomization is seeded to promote reproducibility.
+This codebase also integrates a set of challenging test environments from the [Distracting Control Suite](https://arxiv.org/abs/2101.02722) (DistractingCS). Our implementation of DistractingCS includes environments of 8 gradually increasing randomization intensities. Note that our implementation of DistractingCS is *not* equivalent to the original DistractingCS benchmark -- they differ in important ways: (1) we evaluate at a different set of intensities (and number of videos) that more closely matches performance of current algorithms; (2) we reduce randomization update frequency by a factor of 2 to account for frame skip (action repeat); (3) all Tensorflow dependencies have been replaced by PyTorch. By default, algorithms are trained for 500k frames and are continuously evaluated in both training and test environments. Environment randomization is seeded to promote reproducibility.
 
 
 ## Algorithms
