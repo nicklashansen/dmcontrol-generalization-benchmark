@@ -49,7 +49,7 @@ class SVEA(SAC):
 		self.critic_optimizer.step()
 
 	def update(self, replay_buffer, L, step):
-		obs, action, reward, next_obs, not_done = replay_buffer.sample_drq()
+		obs, action, reward, next_obs, not_done = replay_buffer.sample_svea()
 
 		self.update_critic(obs, action, reward, next_obs, not_done, L, step)
 
