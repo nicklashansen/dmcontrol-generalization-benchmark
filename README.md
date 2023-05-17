@@ -94,7 +94,7 @@ for the SODA method and the DMControl Generalization Benchmark.
 We assume that you have access to a GPU with CUDA >=9.2 support. All dependencies can then be installed with the following commands:
 
 ```
-conda env create -f setup/conda.yml
+conda env create -f setup/conda.yaml
 conda activate dmcgb
 sh setup/install_envs.sh
 ```
