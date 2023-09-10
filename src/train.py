@@ -128,10 +128,12 @@ def main(args):
 				action = agent.sample_action(obs)
 
 		# Run training update
-		if step >= args.init_steps:
-			num_updates = args.init_steps if step == args.init_steps else 1
-			for _ in range(num_updates):
-				agent.update(replay_buffer, L, step)
+		if step == args.init_steps:
+			for i in range(1, args.init_steps + 1):
+				agent.update(replay_buffer, L, i)
+
+		if step > args.init_steps:
+			agent.update(replay_buffer, L, step)
 
 		# Take step
 		next_obs, reward, done, _ = env.step(action)
